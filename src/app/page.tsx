@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import MomentCard from '@/components/MomentCard';
 import CountUp from '@/components/CountUp';
@@ -8,19 +8,42 @@ import SimulatePayment, { SimulationResult } from '@/components/SimulatePayment'
 import { t } from '@/data/translations';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const NETSMap = dynamic(() => import('@/components/overseas/NETSMap'), { 
   ssr: false,
   loading: () => <div className="skeleton-pulse" style={{width: '100%', height: '200px'}} />
 });
 
+// Extend window for Web Speech API
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 export default function HomePage() {
   const [showSimulate, setShowSimulate] = useState(false);
   const [lastSimulation, setLastSimulation] = useState<SimulationResult | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const { allTransactions, addTransaction, personality, language } = useApp();
+  const [isListening, setIsListening] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState<string | null>(null);
+  const { hasOnboarded, allTransactions, addTransaction, personality, language, userName } = useApp();
+  const router = useRouter();
   
+  useEffect(() => {
+    if (!hasOnboarded) {
+      router.push('/onboarding');
+    }
+  }, [hasOnboarded, router]);
+
   const latestTransaction = allTransactions[0];
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   const handleSimulate = (result: SimulationResult) => {
     // Memory Gating Logic
@@ -75,6 +98,76 @@ export default function HomePage() {
     );
   };
 
+  const handleVoicePayment = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast("Voice recognition not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-SG';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setVoiceTranscript("Listening...");
+    };
+
+    recognition.onresult = async (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setVoiceTranscript(transcript);
+      setIsListening(false);
+      showToast("Parsing voice command...");
+
+      try {
+        const res = await fetch('/api/parse-voice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript })
+        });
+        const data = await res.json();
+        
+        if (data.amount) {
+          addTransaction({
+            id: `voice-${Date.now()}`,
+            merchant: data.merchant,
+            category: data.category,
+            amount: data.amount,
+            currency: 'SGD',
+            location: 'Singapore',
+            area: 'Local',
+            date: new Date().toISOString().split('T')[0],
+            time: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+            friendIds: data.friendIds || [],
+            mood: data.mood || 'happy',
+            moodEmoji: '🎙️',
+            memoryLine: `Voice added: "${transcript}"`,
+            isOverseas: false,
+            isMemory: true // Voice payments are always notable
+          });
+          showToast(`Added ${data.merchant} via Voice!`);
+          setVoiceTranscript(null);
+        } else {
+          showToast("Failed to parse payment details.");
+          setVoiceTranscript(null);
+        }
+      } catch (e) {
+        showToast("Error processing voice payment.");
+        setVoiceTranscript(null);
+      }
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      setVoiceTranscript(null);
+      showToast("Voice recognition failed.");
+    };
+
+    recognition.start();
+  };
+
   return (
     <div className="page-content">
       {/* Tagline */}
@@ -87,7 +180,7 @@ export default function HomePage() {
             overflow: 'hidden',
           }}
         >
-          {t('home.tagline1', language)}<br />
+          GM, {userName}! 👋<br />
           {t('home.tagline2', language)}<br />
           <span className="text-red">{t('home.tagline3', language)}</span>
         </div>
@@ -180,6 +273,22 @@ export default function HomePage() {
         </div>
         <div className="text-mono" style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.8)', marginTop: '8px' }}>
           {t('home.basedOn', language)} {allTransactions.length} {t('home.payments', language)} · {t('general.june2026', language)}
+        </div>
+      </div>
+
+      {/* Spending Forecast: Your Month Ahead */}
+      <div className="section-header animate-slide-up stagger-6" style={{ marginTop: '24px' }}>
+        Your Month Ahead
+      </div>
+      <div className="zine-card animate-slide-up stagger-6" style={{ transform: 'rotate(-0.5deg)', border: '2px dashed var(--ink-black)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+          <div style={{ fontSize: '2rem' }}>🔮</div>
+          <div>
+            <div className="text-display" style={{ fontSize: '1.1rem', color: 'var(--nets-blue)' }}>Spending Forecast</div>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '4px', lineHeight: '1.4' }}>
+              At your current rate, you'll spend <strong>$380</strong> this month. Your Bangkok vault needs <strong>$88</strong> more — you'll hit it by July 3rd!
+            </div>
+          </div>
         </div>
       </div>
 
@@ -284,6 +393,58 @@ export default function HomePage() {
           color: 'var(--text-primary)'
         }}>
           {toastMessage}
+        </div>
+      )}
+
+      {/* Voice Payment FAB */}
+      <div 
+        onClick={isListening ? undefined : handleVoicePayment}
+        style={{
+          position: 'fixed',
+          bottom: '100px',
+          right: '20px',
+          width: '60px',
+          height: '60px',
+          borderRadius: '50%',
+          background: isListening ? 'var(--nets-blue)' : 'var(--nets-red)',
+          color: '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '4px 4px 0 var(--ink-black)',
+          border: '2.5px solid var(--ink-black)',
+          cursor: 'pointer',
+          zIndex: 90,
+          animation: isListening ? 'skeletonPulse 1.5s infinite' : 'none',
+          transition: 'all 0.2s'
+        }}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" y1="19" x2="12" y2="23" />
+          <line x1="8" y1="23" x2="16" y2="23" />
+        </svg>
+      </div>
+
+      {/* Voice Status Bubble */}
+      {voiceTranscript && (
+        <div className="animate-slide-up" style={{
+          position: 'fixed',
+          bottom: '170px',
+          right: '20px',
+          background: 'var(--card-bg)',
+          border: '2px solid var(--ink-black)',
+          padding: '8px 12px',
+          borderRadius: '12px',
+          borderBottomRightRadius: '0px',
+          boxShadow: '4px 4px 0 var(--ink-black)',
+          zIndex: 90,
+          maxWidth: '250px',
+          fontSize: '0.8rem',
+          fontWeight: 700
+        }}>
+          {voiceTranscript}
         </div>
       )}
     </div>

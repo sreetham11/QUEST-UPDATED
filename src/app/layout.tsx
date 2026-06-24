@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import BottomNav from '@/components/BottomNav';
 import Header from '@/components/Header';
+import FloatingChat from '@/components/FloatingChat';
 
 
 export const viewport: Viewport = {
@@ -53,6 +54,7 @@ export default function RootLayout({
         <div className="app-shell">
           <Header />
           {children}
+          <FloatingChat />
           <BottomNav />
         </div>
         <div className="grain-overlay" />

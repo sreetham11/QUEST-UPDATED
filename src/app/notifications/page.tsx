@@ -39,7 +39,7 @@ const mockNotifications = [
 ];
 
 export default function NotificationsPage() {
-  const { language } = useApp();
+  const { language, notifications, markNotificationsRead } = useApp();
 
   return (
     <div className="page-content">
@@ -65,11 +65,36 @@ export default function NotificationsPage() {
       </div>
 
       <div className="animate-slide-up stagger-2" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {notifications.map((notif, i) => (
+          <div 
+            key={notif.id} 
+            className="notification-item animate-slide-up"
+            style={{ animationDelay: `${0.1 + i * 0.05}s`, background: notif.read ? 'transparent' : 'rgba(192, 0, 31, 0.05)' }}
+            onClick={() => markNotificationsRead()}
+          >
+            <div className="notification-icon">
+              🚨
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ fontWeight: 900, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                  Spending Alert
+                </div>
+                <div className="text-mono" style={{ fontSize: '0.6rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                  {notif.time}
+                </div>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px', lineHeight: '1.4' }}>
+                {notif.message}
+              </div>
+            </div>
+          </div>
+        ))}
         {mockNotifications.map((notif, i) => (
           <div 
             key={notif.id} 
             className="notification-item animate-slide-up"
-            style={{ animationDelay: `${0.1 + i * 0.05}s` }}
+            style={{ animationDelay: `${0.1 + (i + notifications.length) * 0.05}s` }}
           >
             <div className="notification-icon">
               {notif.icon}

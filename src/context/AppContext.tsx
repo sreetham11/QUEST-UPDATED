@@ -55,9 +55,25 @@ const defaultPersonality: PersonalityData = {
   isLoading: false,
 };
 
+export interface Notification {
+  id: string;
+  message: string;
+  time: string;
+  read: boolean;
+}
+
 interface AppState {
+  hasOnboarded: boolean;
+  setHasOnboarded: (val: boolean) => void;
+  userName: string;
+  setUserName: (name: string) => void;
+  frequentMerchant: string;
+  setFrequentMerchant: (merchant: string) => void;
   simulatedTransactions: Transaction[];
   addTransaction: (txn: Transaction) => void;
+  notifications: Notification[];
+  addNotification: (notif: Notification) => void;
+  markNotificationsRead: () => void;
   personality: PersonalityData;
   setPersonality: (p: PersonalityData) => void;
   language: Language;
@@ -69,8 +85,41 @@ interface AppState {
 const useStore = create<AppState>()(
   persist(
     (set) => ({
+      hasOnboarded: false,
+      setHasOnboarded: (val) => set({ hasOnboarded: val }),
+      userName: 'Sree',
+      setUserName: (name) => set({ userName: name }),
+      frequentMerchant: 'Maxwell Food Centre',
+      setFrequentMerchant: (merchant) => set({ frequentMerchant: merchant }),
       simulatedTransactions: [],
-      addTransaction: (txn) => set((state) => ({ simulatedTransactions: [txn, ...state.simulatedTransactions] })),
+      addTransaction: (txn) => set((state) => {
+        // Anomaly Detection Logic
+        let newNotifs = [...state.notifications];
+        if (txn.category === 'hawker' && txn.amount > 30) {
+          newNotifs.unshift({
+            id: `alert-${Date.now()}`,
+            message: `That's your biggest hawker spend this month 👀 (${txn.amount} SGD)`,
+            time: 'Just now',
+            read: false
+          });
+        } else if (txn.amount > 100) {
+          newNotifs.unshift({
+            id: `alert-${Date.now()}`,
+            message: `Unusually large transaction detected at ${txn.merchant}.`,
+            time: 'Just now',
+            read: false
+          });
+        }
+        return { 
+          simulatedTransactions: [txn, ...state.simulatedTransactions],
+          notifications: newNotifs
+        };
+      }),
+      notifications: [],
+      addNotification: (notif) => set((state) => ({ notifications: [notif, ...state.notifications] })),
+      markNotificationsRead: () => set((state) => ({
+        notifications: state.notifications.map(n => ({ ...n, read: true }))
+      })),
       personality: defaultPersonality,
       setPersonality: (p) => set({ personality: p }),
       language: 'en',
@@ -150,14 +199,10 @@ function computeMoodPattern(txns: Transaction[]): { primary: string; secondary: 
   return { primary, secondary };
 }
 
-export function useApp(): AppContextType {
+export function useApp() {
   const store = useStore();
-  const allTransactions = [...store.simulatedTransactions, ...baseTransactions];
 
-  // Apply theme effect
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', store.theme === 'dark');
-  }, [store.theme]);
+  const allTransactions = [...store.simulatedTransactions, ...baseTransactions];
 
   const refreshPersonality = useCallback(async () => {
     store.setPersonality({ ...store.personality, isLoading: true });
@@ -178,9 +223,9 @@ export function useApp(): AppContextType {
             title: data.title,
             traits: (data.traits || []).map((t: string, i: number) => ({
               label: t,
-              color: ['#C0001F', '#FF2D87', '#0033A0'][i % 3],
+              color: i === 0 ? '#C0001F' : i === 1 ? '#FF2D87' : '#0033A0',
             })),
-            story: data.story || defaultPersonality.story,
+            story: data.story,
             isLoading: false,
           });
           return;
@@ -193,12 +238,21 @@ export function useApp(): AppContextType {
   }, [store.language, store.simulatedTransactions.length]);
 
   return {
+    hasOnboarded: store.hasOnboarded,
+    setHasOnboarded: store.setHasOnboarded,
+    userName: store.userName,
+    setUserName: store.setUserName,
+    frequentMerchant: store.frequentMerchant,
+    setFrequentMerchant: store.setFrequentMerchant,
     simulatedTransactions: store.simulatedTransactions,
     allTransactions,
-    addTransaction: (txn) => {
+    addTransaction: (txn: Transaction) => {
       store.addTransaction(txn);
       setTimeout(() => refreshPersonality(), 100);
     },
+    notifications: store.notifications,
+    addNotification: store.addNotification,
+    markNotificationsRead: store.markNotificationsRead,
     personality: store.personality,
     categories: computeCategories(allTransactions),
     peakTime: computePeakTime(allTransactions),
@@ -208,6 +262,10 @@ export function useApp(): AppContextType {
     setLanguage: store.setLanguage,
     theme: store.theme,
     setTheme: store.setTheme,
+    vaults: [
+      { id: 'v1', name: 'Bangkok Trip', progress: 42, color: '#FF2D87', members: ['sree', 'kai', 'priya'], target: 450, current: 189 },
+      { id: 'v2', name: 'Jay Chou Tickets', progress: 85, color: '#0033A0', members: ['sree', 'wei'], target: 350, current: 297.5 }
+    ]
   };
 }
 

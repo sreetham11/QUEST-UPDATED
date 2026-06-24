@@ -28,8 +28,8 @@ export async function POST(req: Request) {
       return NextResponse.json(fallbackResponse);
     }
 
-    const categories = [...new Set(transactions.map((t: any) => t.category))].join(', ');
-    const maxTxn = transactions.reduce((prev: any, current: any) => (prev.amount > current.amount) ? prev : current);
+    const categories = Array.from(new Set(transactions.map((t: { category: string }) => t.category))).join(', ');
+    const maxTxn = transactions.reduce((prev: { amount: number }, current: { amount: number }) => (prev.amount > current.amount) ? prev : current);
     
     let languageInstruction = '';
     if (language === 'zh') {
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
     const content = data.content[0].text;
     
     // Extract JSON block
-    const jsonMatch = content.match(/\\{.*?\\}/s);
+    const jsonMatch = content.match(/\{[\s\S]*?\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       return NextResponse.json({

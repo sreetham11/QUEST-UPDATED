@@ -158,6 +158,7 @@ export const transactions: Transaction[] = [
     mood: 'chill',
     moodEmoji: '😌',
     memoryLine: 'solo curry puff at Tampines — comfort snack unlocked',
+    isOverseas: false,
     isMemory: false,
   }
 ];

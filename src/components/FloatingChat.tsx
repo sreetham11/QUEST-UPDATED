@@ -37,7 +37,7 @@ export default function FloatingChat() {
       
       const data = await res.json();
       setChatHistory(prev => [...prev, { role: 'ai', text: data.answer }]);
-    } catch (err) {
+    } catch {
       setChatHistory(prev => [...prev, { role: 'ai', text: "Sorry, I'm having trouble connecting right now." }]);
     } finally {
       setIsLoading(false);
@@ -76,7 +76,7 @@ export default function FloatingChat() {
               border: '1px solid var(--ink-black)',
               fontSize: '0.85rem'
             }}>
-              Ask me about your spending or vault goals! e.g. "Am I on track for Bangkok?"
+              Ask me about your spending or vault goals! e.g. &quot;Am I on track for Bangkok?&quot;
             </div>
             
             {chatHistory.map((msg, i) => (

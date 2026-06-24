@@ -2,14 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { getTransactionsByFilter } from '@/data/transactions';
-import { searchFriends, Friend } from '@/data/friends';
+import { searchFriends } from '@/data/friends';
 import MomentCard from '@/components/MomentCard';
 import FilterTabs from '@/components/FilterTabs';
 import { useApp } from '@/context/AppContext';
 import { t } from '@/data/translations';
 
-const filters = ['All', 'Friends', 'Solo', 'Overseas'];
+
 
 export default function MemoriesPage() {
   const [activeFilter, setActiveFilter] = useState('All');

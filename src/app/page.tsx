@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
+import type { Transaction } from '@/data/transactions';
 import MomentCard from '@/components/MomentCard';
 import CountUp from '@/components/CountUp';
 import SimulatePayment, { SimulationResult } from '@/components/SimulatePayment';
@@ -18,8 +19,35 @@ const NETSMap = dynamic(() => import('@/components/overseas/NETSMap'), {
 // Extend window for Web Speech API
 declare global {
   interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+  interface SpeechRecognition {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    maxAlternatives: number;
+    start(): void;
+    stop(): void;
+    onstart: (() => void) | null;
+    onresult: ((event: SpeechRecognitionEvent) => void) | null;
+    onerror: (() => void) | null;
+    onend: (() => void) | null;
+  }
+  interface SpeechRecognitionEvent {
+    results: SpeechRecognitionResultList;
+  }
+  interface SpeechRecognitionResultList {
+    [index: number]: SpeechRecognitionResult;
+    readonly length: number;
+  }
+  interface SpeechRecognitionResult {
+    [index: number]: SpeechRecognitionAlternative;
+    readonly length: number;
+  }
+  interface SpeechRecognitionAlternative {
+    readonly transcript: string;
+    readonly confidence: number;
   }
 }
 
@@ -61,7 +89,7 @@ export default function HomePage() {
     addTransaction({
       id: `sim-${Date.now()}`,
       merchant: result.merchant,
-      category: result.category as any,
+      category: result.category as Transaction['category'],
       amount: result.amount,
       currency: 'SGD',
       location: 'Singapore',
@@ -115,7 +143,7 @@ export default function HomePage() {
       setVoiceTranscript("Listening...");
     };
 
-    recognition.onresult = async (event: any) => {
+    recognition.onresult = async (event: SpeechRecognitionEvent) => {
       const transcript = event.results[0][0].transcript;
       setVoiceTranscript(transcript);
       setIsListening(false);
@@ -153,7 +181,7 @@ export default function HomePage() {
           showToast("Failed to parse payment details.");
           setVoiceTranscript(null);
         }
-      } catch (e) {
+      } catch {
         showToast("Error processing voice payment.");
         setVoiceTranscript(null);
       }

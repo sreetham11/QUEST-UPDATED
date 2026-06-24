@@ -66,7 +66,7 @@ export default function ScannerPage() {
           showToast('Could not read receipt. Try a clearer photo or use the demo receipt.');
           setImageSrc(null);
         }
-      } catch (error) {
+      } catch {
         showToast('Could not read receipt. Try a clearer photo or use the demo receipt.');
         setImageSrc(null);
       } finally {

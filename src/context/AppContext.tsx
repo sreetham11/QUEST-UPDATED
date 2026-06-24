@@ -22,7 +22,8 @@ export interface CategoryBreakdown {
   color: string;
 }
 
-interface AppContextType {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface _AppContextType {
   // Transactions
   simulatedTransactions: Transaction[];
   allTransactions: Transaction[];
@@ -94,7 +95,7 @@ const useStore = create<AppState>()(
       simulatedTransactions: [],
       addTransaction: (txn) => set((state) => {
         // Anomaly Detection Logic
-        let newNotifs = [...state.notifications];
+        const newNotifs = [...state.notifications];
         if (txn.category === 'hawker' && txn.amount > 30) {
           newNotifs.unshift({
             id: `alert-${Date.now()}`,

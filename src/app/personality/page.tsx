@@ -20,7 +20,7 @@ export default function PersonalityPage() {
   const heatmapData = useMemo(() => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const times = ['Morning', 'Afternoon', 'Evening', 'Night'];
-    const grid: any[] = [];
+    const grid: { x: number; y: number; day: string; time: string; value: number }[] = [];
     days.forEach((day, x) => {
       times.forEach((time, y) => {
         grid.push({ x, y, day, time, value: 0 });
@@ -206,7 +206,8 @@ export default function PersonalityPage() {
                 ))}
               </Pie>
               <RechartsTooltip 
-                formatter={(value: number) => [`${value}%`, 'Spend']}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                formatter={(value: any) => [`${value}%`, 'Spend']}
                 contentStyle={{ background: 'var(--card-bg)', border: '2px solid var(--border-color)', fontWeight: 700 }}
                 itemStyle={{ color: 'var(--text-primary)' }}
               />

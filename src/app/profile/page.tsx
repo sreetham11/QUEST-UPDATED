@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { currentUser } from '@/data/user';
 import { t, languageNames } from '@/data/translations';
-import type { Language, Theme } from '@/context/AppContext';
+import type { Language } from '@/context/AppContext';
 
 export default function ProfilePage() {
   const { allTransactions, personality, language, setLanguage, theme, setTheme } = useApp();
@@ -54,6 +54,7 @@ export default function ProfilePage() {
           style={{ cursor: 'pointer', overflow: 'hidden', position: 'relative', margin: '0 auto' }}
         >
           {avatarPreview ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={avatarPreview} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             userName.charAt(0).toUpperCase()

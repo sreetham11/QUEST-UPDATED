@@ -23,6 +23,7 @@ export default function NETSMap({ isOverseasMode = false, compact = false }: NET
   });
 
   const [center, setCenter] = useState(isOverseasMode ? OVERSEAS_FALLBACK : LOCAL_FALLBACK);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedMarker, setSelectedMarker] = useState<any>(null);
 
   useEffect(() => {
@@ -102,8 +103,7 @@ export default function NETSMap({ isOverseasMode = false, compact = false }: NET
     fillOpacity: 1,
     strokeWeight: 2,
     strokeColor: '#fff',
-    scale: 1.2,
-    anchor: { x: 10, y: 10 }
+    scale: 1.2
   };
 
   if (loadError || !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { formatCurrency, convertCurrency } from '@/lib/utils';
 import { useApp } from '@/context/AppContext';
